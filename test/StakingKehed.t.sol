@@ -23,28 +23,23 @@ contract StakingKehedTest is Test {
         StakingKehed implementation = new StakingKehed();
 
         // Prepare data for initialize function
-        bytes memory data = abi.encodeWithSignature(
-            "initialize(address,address)",
-            address(token),
-            admin
-        );
+        bytes memory data = abi.encodeWithSignature("initialize(address,address)", address(token), admin);
 
         // Deploy proxy contract pointing to implementation and call initialize
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(implementation),
-            data
-        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), data);
 
         staking = StakingKehed(address(proxy));
 
-        token.transfer(user1, 1000 * 10**18);
+        token.transfer(user1, 1000 * 10 ** 18);
     }
+
     function test_DeploymentSuccess() public view {
         assertEq(address(staking.khdToken()), address(token));
         assertEq(staking.hasRole(staking.DEFAULT_ADMIN_ROLE(), admin), true);
     }
+
     function test_StakeTokens() public {
-        uint256 stakeAmount = 100 * 10**18;
+        uint256 stakeAmount = 100 * 10 ** 18;
 
         vm.startPrank(user1);
         token.approve(address(staking), stakeAmount);
@@ -54,16 +49,17 @@ contract StakingKehedTest is Test {
 
         assertEq(staking.stakedBalances(user1), stakeAmount);
     }
+
     function test_UpgradeProxy() public {
         // Deploy new implementation
         StakingKehed newImplementation = new StakingKehed();
 
         vm.prank(admin);
         UUPSUpgradeable(address(staking)).upgradeToAndCall(address(newImplementation), "");
-       
-        assertEq(staking.stakedBalances(user1), 0); 
 
-        uint256 stakeAmount = 50 * 10**18;
+        assertEq(staking.stakedBalances(user1), 0);
+
+        uint256 stakeAmount = 50 * 10 ** 18;
         vm.startPrank(user1);
         token.approve(address(staking), stakeAmount);
         staking.stake(stakeAmount);
@@ -71,9 +67,10 @@ contract StakingKehedTest is Test {
 
         assertEq(staking.stakedBalances(user1), stakeAmount);
     }
+
     function testFuzz_Stake(uint256 amount) public {
-        amount = bound(amount, 1 * 10**18, 500 * 10**18);
-        
+        amount = bound(amount, 1 * 10 ** 18, 500 * 10 ** 18);
+
         token.transfer(user1, amount);
 
         vm.startPrank(user1);

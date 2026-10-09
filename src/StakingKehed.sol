@@ -8,8 +8,13 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol"
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract StakingKehed is Initializable, AccessControlUpgradeable, PausableUpgradeable, ReentrancyGuard, UUPSUpgradeable {
-
+contract StakingKehed is
+    Initializable,
+    AccessControlUpgradeable,
+    PausableUpgradeable,
+    ReentrancyGuard,
+    UUPSUpgradeable
+{
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     bytes32 public constant WITHDRAWER_ROLE = keccak256("WITHDRAWER_ROLE");
 
@@ -37,7 +42,7 @@ contract StakingKehed is Initializable, AccessControlUpgradeable, PausableUpgrad
         __AccessControl_init();
         __Pausable_init();
         __UUPSUpgradeable_init();
-        
+
         khdToken = IERC20(_tokenAddress);
         feeCollector = _admin;
 
@@ -51,36 +56,35 @@ contract StakingKehed is Initializable, AccessControlUpgradeable, PausableUpgrad
 
     function _authorizeUpgrade(address) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
-     function pause() external onlyRole(PAUSER_ROLE) {
+    function pause() external onlyRole(PAUSER_ROLE) {
         _pause();
-     }
-     function unpause() external onlyRole(PAUSER_ROLE) {
+    }
+
+    function unpause() external onlyRole(PAUSER_ROLE) {
         _unpause();
-     }
-     function emergancyWithdrawToken(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
+    }
+
+    function emergancyWithdrawToken(uint256 amount) external onlyRole(WITHDRAWER_ROLE) {
         require(khdToken.balanceOf(address(this)) >= amount, "Saldo token tidak cukup");
         khdToken.transfer(msg.sender, amount);
-     }
+    }
 
     function stake(uint256 _amount) external whenNotPaused nonReentrant {
         require(_amount > 0, "Amount must be greater than 0");
-        require(
-            stakedBalances[msg.sender] + _amount <= maxStakePerUser,
-            "Kebanyakan KHD."
-        );
-    
+        require(stakedBalances[msg.sender] + _amount <= maxStakePerUser, "Kebanyakan KHD.");
+
         stakeTimestamp[msg.sender] = block.timestamp;
 
         if (stakedBalances[msg.sender] == 0) {
-        lastClaimTimestamp[msg.sender] = block.timestamp;
+            lastClaimTimestamp[msg.sender] = block.timestamp;
         }
 
         khdToken.transferFrom(msg.sender, address(this), _amount);
         stakedBalances[msg.sender] += _amount;
 
         emit Staked(msg.sender, _amount, block.timestamp);
-
     }
+
     function calculateRewards(address user) public view returns (uint256) {
         if (stakedBalances[user] == 0) return 0;
         return (stakedBalances[user] * 10) / 100;
@@ -89,15 +93,12 @@ contract StakingKehed is Initializable, AccessControlUpgradeable, PausableUpgrad
     function claimReward() external whenNotPaused nonReentrant {
         uint256 reward = (stakedBalances[msg.sender] * 10) / 100;
         require(reward > 0, "Lu gak punya saldo yang di stake Blegug");
-        require(
-            khdToken.balanceOf(address(this)) >= reward,
-            "Saldo reward staking tidak cukup"
-        );
+        require(khdToken.balanceOf(address(this)) >= reward, "Saldo reward staking tidak cukup");
         require(
             block.timestamp >= lastClaimTimestamp[msg.sender] + 60 seconds,
             "Sabar Blegugg, Belum 60 detik udah mau Claim lagi aja"
         );
-    
+
         lastClaimTimestamp[msg.sender] = block.timestamp;
 
         khdToken.transfer(msg.sender, reward);
@@ -105,24 +106,21 @@ contract StakingKehed is Initializable, AccessControlUpgradeable, PausableUpgrad
         emit RewardClaimed(msg.sender, reward, block.timestamp);
     }
 
-    function autoCompound() external whenNotPaused nonReentrant{
+    function autoCompound() external whenNotPaused nonReentrant {
         uint256 reward = (stakedBalances[msg.sender] * 10) / 100;
         require(reward > 0, "Gak ada reward yang di-compound");
+        require(khdToken.balanceOf(address(this)) >= reward, "Saldo reward staking tidak cukup");
         require(
-            khdToken.balanceOf(address(this)) >= reward,
-            "Saldo reward staking tidak cukup"
+            block.timestamp >= lastClaimTimestamp[msg.sender] + 60 seconds, "Kalo mau Sugih Harus Sabar,Belum 60 detik"
         );
-        require(
-            block.timestamp >= lastClaimTimestamp[msg.sender] + 60 seconds,
-            "Kalo mau Sugih Harus Sabar,Belum 60 detik"
-        );
-        
+
         lastClaimTimestamp[msg.sender] = block.timestamp;
 
         stakedBalances[msg.sender] += reward;
-        
+
         emit Compounded(msg.sender, reward, block.timestamp);
     }
+
     function updateMaxStake(uint256 _newMax) external onlyRole(DEFAULT_ADMIN_ROLE) {
         maxStakePerUser = _newMax;
     }
@@ -147,14 +145,8 @@ contract StakingKehed is Initializable, AccessControlUpgradeable, PausableUpgrad
         uint256 feeAmount = (stakedAmount * withdrawalFeePercentage) / 100;
         uint256 amountToUser = stakedAmount - feeAmount;
 
-        require(
-            khdToken.transfer(feeCollector, feeAmount),
-            "Gagal Kirim Pajak ke Owner"
-        );
-        require(
-            khdToken.transfer(msg.sender, amountToUser),
-            "Gagal kembaliin Modal"
-        );
+        require(khdToken.transfer(feeCollector, feeAmount), "Gagal Kirim Pajak ke Owner");
+        require(khdToken.transfer(msg.sender, amountToUser), "Gagal kembaliin Modal");
 
         if (reward > 0) {
             require(khdToken.transfer(msg.sender, reward), "Gagal kirim reward");

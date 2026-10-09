@@ -9,7 +9,7 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 contract DeployStaking is Script {
     function run() external {
         // 1. Deploy token
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY"); 
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         address admin = vm.addr(deployerPrivateKey);
 
         vm.startBroadcast(deployerPrivateKey);
@@ -20,18 +20,11 @@ contract DeployStaking is Script {
         StakingKehed implementation = new StakingKehed();
         console.log("Implementation deployed at:", address(implementation));
 
-        bytes memory data = abi.encodeWithSignature(
-            "initialize(address,address)",
-            address(token),
-            admin
-        );
+        bytes memory data = abi.encodeWithSignature("initialize(address,address)", address(token), admin);
 
-        ERC1967Proxy proxy = new ERC1967Proxy(
-            address(implementation), 
-            data
-        );
+        ERC1967Proxy proxy = new ERC1967Proxy(address(implementation), data);
         console.log("Proxy deployed at:", address(proxy));
 
         vm.stopBroadcast();
     }
-} 
+}

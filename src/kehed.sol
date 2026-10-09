@@ -4,7 +4,7 @@ pragma solidity ^0.8.28;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract KehedCoin is ERC20 {
-    constructor() ERC20 ("KehedCoin", "KHD") {
+    constructor() ERC20("KehedCoin", "KHD") {
         _mint(msg.sender, 1000000 * 10 ** decimals());
     }
 }
