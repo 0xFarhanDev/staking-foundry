@@ -10,10 +10,9 @@ interface UUPSProxy {
 }
 
 contract UpgradeStakingScript is Script {
-    address public proxyAddress = 0xB17eF2e17Cc4968c79f39366EaAdD40a9CCb3107;
-
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address proxyAddress = vm.envAddress("PROXY_ADDRESS");
 
         vm.startBroadcast(deployerPrivateKey);
 

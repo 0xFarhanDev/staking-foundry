@@ -1,66 +1,85 @@
-## Foundry
+# StakingKehed — UUPS staking prototype
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+An experimental ERC-20 staking dApp built with Solidity and Foundry. The contracts demonstrate an upgradeable proxy, role-based administration, pause controls, staking, reward claims, compounding, and withdrawal fees.
 
-Foundry consists of:
+> **Status:** learning/portfolio prototype. It has not been independently audited and is not suitable for production or real funds. Read [Known limitations](#known-limitations) before interacting with it.
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+## What this repository demonstrates
 
-## Documentation
+- UUPS implementation and proxy initialization with OpenZeppelin Upgradeable.
+- Role-gated pause, emergency token withdrawal, and upgrade authorization.
+- ERC-20 staking and withdrawal flows with a configurable per-user stake cap.
+- A Foundry unit/fuzz test suite and GitHub Actions checks for formatting, compilation, and tests.
+- A V2 implementation illustrating a storage-preserving upgrade exercise.
 
-https://book.getfoundry.sh/
+## Contract behavior
 
-## Usage
+`StakingKehed` currently caps each user's stake at 5,000 KHD and sets a 1% withdrawal fee. A reward claim is available after 60 seconds and pays a fixed 10% of the current stake; this is **not an annual percentage yield**. `StakingKehedV2` overrides reward calculation with a time-based 15% annual rate, but its upgrade and reward behavior should be treated as an experiment until covered by additional tests and reviewed.
 
-### Build
+The contracts use Solidity `^0.8.28`. Dependencies are recorded as Foundry submodules and in `foundry.lock`.
 
-```shell
-$ forge build
+## Requirements
+
+- [Foundry](https://getfoundry.sh/)
+- Git with submodule support
+
+## Build and inspect
+
+```sh
+git clone --recurse-submodules https://github.com/0xFarhanDev/staking-foundry.git
+cd staking-foundry
+forge build
+forge test
+forge fmt --check
 ```
 
-### Test
+To run a local node in another terminal:
 
-```shell
-$ forge test
+```sh
+anvil
 ```
 
-### Format
+## Deploy to a test network
 
-```shell
-$ forge fmt
+Copy `.env.example` to `.env`, fill in a **test-only** private key and RPC URL, then load the environment variables into your shell. Never commit `.env` or use a wallet holding valuable assets.
+
+```sh
+forge script script/DeployStaking.s.sol:DeployStaking \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --broadcast
 ```
 
-### Gas Snapshots
+The deployment script creates the KHD token, implementation, and ERC-1967 proxy, then initializes the proxy with the deployer as admin. It prints each deployed address. Save the proxy address for the frontend and upgrade script.
 
-```shell
-$ forge snapshot
+To run the experimental V2 upgrade, set `PROXY_ADDRESS` in the environment and run:
+
+```sh
+forge script script/UpgradeStaking.s.sol:UpgradeStakingScript \
+  --rpc-url "$SEPOLIA_RPC_URL" \
+  --broadcast
 ```
 
-### Anvil
+Only use a disposable local or testnet deployment. The V2 implementation and upgrade path need more coverage before use.
 
-```shell
-$ anvil
+## Project layout
+
+```text
+src/       Staking, token, and V2 implementation contracts
+script/    Deployment and upgrade scripts
+test/      Foundry tests
+lib/       Foundry dependency submodules
+.github/   CI workflow
 ```
 
-### Deploy
+## Known limitations
 
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
+- This is an unaudited prototype; tests are small and do not establish security.
+- `LOCK_DURATION` is declared but is not enforced by `stake` or `withdraw`.
+- `claimReward` pays a fixed 10% per eligible claim, not a time-weighted yield. The V2 calculation is separate and needs dedicated tests.
+- Emergency token withdrawal can affect assets backing user deposits. It needs a clear accounting and incident policy before production use.
+- ERC-20 calls should be reviewed for return-value and non-standard-token behavior.
+- There are no invariant, deployment, or upgrade-storage compatibility tests yet.
 
-### Cast
+## License
 
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+The project contracts declare the MIT license. See source headers and dependency licenses for details.
