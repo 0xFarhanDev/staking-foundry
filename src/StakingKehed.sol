@@ -85,9 +85,9 @@ contract StakingKehed is
         emit Staked(msg.sender, _amount, block.timestamp);
     }
 
-    function calculateRewards(address user) public view returns (uint256) {
-        if (stakedBalances[user] == 0) return 0;
-        return (stakedBalances[user] * 10) / 100;
+    function calculateRewards(address account) public view virtual returns (uint256) {
+        if (stakedBalances[account] == 0) return 0;
+        return (stakedBalances[account] * 10) / 100;
     }
 
     function claimReward() external whenNotPaused nonReentrant {
